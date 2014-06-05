@@ -1,10 +1,7 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
-using System.Web;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Web.Mvc;
 
 namespace NewRelicDeployTool.Controllers
@@ -28,28 +25,28 @@ namespace NewRelicDeployTool.Controllers
                 {
                     using (var client = new HttpClient())
                     {
-                        client.DefaultRequestHeaders.Add("x-api-key", key);
+                        HttpRequestMessage post = new HttpRequestMessage(HttpMethod.Post, "https://api.newrelic.com/deployments.xml");
+                        post.Headers.Add("x-api-key", key);
 
-                        Dictionary<string, string> data = new Dictionary<string, string>();
-                        data.Add("deployment[app_name]", appName);
-                        data.Add("deployment[application_id]", appID);
-                        data.Add("deployment[description]", notes);
-                        data.Add("deployment[revision]", revision);
-                        data.Add("deployment[changelog]", changes);
-                        data.Add("deployment[user]", user);
+                        StringBuilder rawContent = new StringBuilder();
+                        rawContent.AppendFormat("deployment[app_name]={0}&", appName);
+                        rawContent.AppendFormat("deployment[application_id]={0}&", appID);
+                        rawContent.AppendFormat("deployment[description]={0}&", notes);
+                        rawContent.AppendFormat("deployment[revision]={0}&", revision);
+                        rawContent.AppendFormat("deployment[changelog]={0}&", changes);
+                        rawContent.AppendFormat("deployment[user]={0}", user);
 
-                        var requestTask = client.PostAsync("https://api.newrelic.com/deployments.xml", new StringContent(JsonConvert.SerializeObject(data)));
+                        post.Content = new StringContent(rawContent.ToString());
+                        post.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+                        
+                        var requestTask = client.SendAsync(post);
                         
                         HttpResponseMessage response = requestTask.Result;
 
-                        if(response.StatusCode == HttpStatusCode.OK)
-                        {
+                        if(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created)
                             success = true;
-                        }
                         else
-                        {
                             message = response.ReasonPhrase;
-                        }
                     }
                 }
                 else
