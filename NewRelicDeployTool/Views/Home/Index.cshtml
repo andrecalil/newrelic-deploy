@@ -1,0 +1,286 @@
+﻿<div class="well">
+    <h1>New Deployment</h1>
+    <div class="row">
+        <div class="col-sm-6">
+            <form class="form-horizontal" role="form">
+                <div class="form-group">
+                    <label for="app-name" class="col-sm-2 control-label">API Key</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="key" required placeholder="Get it from New Relic!">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="app-name" class="col-sm-2 control-label">App Name</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="app-name" placeholder="My Awesome App">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="app-id" class="col-sm-2 control-label">App ID</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="app-id" placeholder="Get it from New Relic!">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="notes" class="col-sm-2 control-label">Notes</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="notes" placeholder="What's this deployment about?">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="revision" class="col-sm-2 control-label">Revision</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="revision" placeholder="From your source control. You have one, right?">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="changelog" class="col-sm-2 control-label">Changes</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="changelog" placeholder="Maybe a link to a post?">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="user" class="col-sm-2 control-label">User</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="user" placeholder="Who deployed this new version?">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" id="save-cookie"> Save to cookie
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="submit" class="btn btn-primary" id="go" data-loading-text="Hold on!">Do it!</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-sm-6">
+            <h2>Previous apps</h2>
+            <p class="no-apps">You have no previous apps saved. Don't forget to select "Save to cookie" on your next deplyment, otherwise we won't keep your data.</p>
+            <table class="table table-condensed table-striped" id="apps-table">
+                <thead>
+                    <tr>
+                        <th>App Name</th>
+                        <th>App ID</th>
+                        <th>User</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <h2>What?</h2>
+        <p>This <i>unofficial</i> application creates a deployment for you app at New Relic. You must retrieve all data from your New Relic account.</p>
+    </div>
+    <div class="col-md-4">
+        <h2>How?</h2>
+        <p>New Relic has an API for that, and it's really cool. You should <a href="https://github.com/andrecalil/newrelic-deploy.git">check it out</a></p>
+    </div>
+    <div class="col-md-4">
+        <h2>Safe?</h2>
+        <p>Absolutely. There's nothing on the backend other than a request to New Relic API. Unfortunately we had to take it to the server, because New Relic won't accept CORS.</p>
+        <p>There's a cookie feature to save your data localy on your browser, so next deployments will be faster. Anyway, you can turn it off.</p>
+        <p>This app is open source and free. You should <a href="https://github.com/andrecalil/newrelic-deploy">check it out</a> as well.</p>
+    </div>
+</div>
+@section scripts{
+    <script type="text/javascript">
+        var storageNS = {
+            cookieName: 'NewRelicDeploymentTool.PreviousApps'
+
+            , retrieveAndShow: function () {
+                $('.no-apps').hide();
+                $('#apps-table').hide();
+
+                var previousApps = storageNS.retrievePreviousApps();
+
+                if (previousApps && previousApps.Apps && previousApps.Apps.length) {
+                    $('#apps-table tbody').empty();
+
+                    for (var i = 0; i < previousApps.Apps.length; i++) {
+                        var current = previousApps.Apps[i];
+
+                        var newTR = '';
+                        newTR += '<tr>';
+                        newTR += ' <td>' + current.AppName + '</td>';
+                        newTR += ' <td>' + current.AppID + '</td>';
+                        newTR += ' <td>' + current.User + '</td>';
+                        newTR += ' <td><a href="#" class="use-saved-app" data-key="' + current.Key + '" data-appname="' + current.AppName + '" data-appid="' + current.AppID + '" data-user="' + current.User + '">Use this</a></td>';
+                        newTR += '</tr>';
+
+                        $('#apps-table tbody').append(newTR);
+                    }
+
+                    $('#apps-table').show();
+                }
+                else
+                    $('.no-apps').show();
+            }
+
+            , retrievePreviousApps: function () {
+                $.cookie.json = true;
+
+                return $.cookie(storageNS.cookieName);
+            }
+
+
+            , saveCurrentApp: function (key, appName, appID, user) {
+                var previousApps = storageNS.retrievePreviousApps();
+
+                if (previousApps && previousApps.Apps && previousApps.Apps.length) {
+                    for (var i = 0; i < previousApps.Apps.length; i++) {
+                        var current = previousApps.Apps[i];
+
+                        if (current.Key == key
+                            && current.AppName == appName
+                            && current.AppID == appID
+                            && current.User == user)
+                            return;
+                    }
+                }
+                else
+                    previousApps = { Apps: [] };
+
+                previousApps.Apps.push({
+                    Key: key
+                    , AppName: appName
+                    , AppID: appID
+                    , User: user
+                });
+
+                $.cookie(storageNS.cookieName, previousApps, { expires: 60 });
+
+                storageNS.retrieveAndShow();
+            }
+        };
+
+        var deploymentNS = {
+            deploy: function (_key, _appName, _appID, _notes, _revision, _changelog, _user) {
+                $('#key').popover('hide');
+                $('#app-name').popover('hide');
+                $('#go').popover('destroy');
+
+                if (!_key || _key == '') {
+                    $('#key').popover('show');
+                    return;
+                }
+
+                if ((!_appName || _appName == '') && (!_appID || _appID == '')) {
+                    $('#app-name').popover('show');
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Content("~/home/deploy")'
+                    , data: {
+                        key: _key
+                        , appName: _appName
+                        , appID: _appID
+                        , notes: _notes
+                        , revision: _revision
+                        , changes: _changelog
+                        , user: _user
+                    }
+                    , dataType: 'json'
+                    , type: 'POST'
+                }).done(function (response, data) {
+                    if (response && response.Success) {
+                        $('#go').popover({
+                            animation: true
+                            , title: 'Yay!'
+                            , content: 'Done. Now go have fun.'
+                            , trigger: 'manual'
+                        });
+
+                        if ($('#save-cookie').is(':checked'))
+                            storageNS.saveCurrentApp(_key, _appName, _appID, _user);
+
+                        deploymentNS.clearForm();
+                    }
+                    else{
+                        var errorMessage = 'Something went wrong. Please, review your data from your New Relic account.';
+
+                        if(response && response.Message){
+                            errorMessage += '<br/><br/><b>Additional info:</b> ' + response.Message;
+                        }
+
+                        $('#go').popover({
+                            animation: true
+                            , title: 'Oops'
+                            , content: errorMessage
+                            , trigger: 'manual'
+                            , html: true
+                        });
+                    }
+
+                    $('#go').popover('show');
+
+                    $('#go').button('reset');
+                });
+            },
+
+            clearForm: function () {
+                $('input[type=text]').val('');
+                $('#save-cookie').removeAttr('checked');
+            }
+        };
+
+        $(function () {
+            storageNS.retrieveAndShow();
+
+            $('#key').popover({
+                animation: true
+                        , title: 'Oops'
+                        , content: 'The API Key is required'
+                        , trigger: 'manual'
+            });
+
+            $('#app-name').popover({
+                animation: true
+                        , title: 'Oops'
+                        , content: 'You must inform the app name or the ID'
+                        , trigger: 'manual'
+            });
+
+            $('form').on('submit', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                $('#go').button('loading');
+
+                var key = $('#key').val();
+                var appName = $('#app-name').val();
+                var appID = $('#app-id').val();
+                var notes = $('#notes').val();
+                var revision = $('#revision').val();
+                var changelog = $('#changelog').val();
+                var user = $('#user').val();
+
+                deploymentNS.deploy(key, appName, appID, notes, revision, changelog, user);
+            });
+
+            $('#apps-table').on('click', '.use-saved-app', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                $('#key').val($(this).data('key'));
+                $('#app-name').val($(this).data('appname'));
+                $('#app-id').val($(this).data('appid'));
+                $('#user').val($(this).data('user'));
+            });
+        });
+    </script>
+}
